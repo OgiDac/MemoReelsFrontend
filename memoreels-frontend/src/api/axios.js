@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: "http://localhost:5175",
+  headers: { "ngrok-skip-browser-warning": "69420" },
 });
 
 api.interceptors.request.use(

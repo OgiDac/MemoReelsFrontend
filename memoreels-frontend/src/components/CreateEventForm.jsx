@@ -10,6 +10,9 @@ import {
 } from "../store/slices/eventsSlice";
 
 export default function CreateEventForm({ onClose }) {
+
+  const Req = () => <span className="text-red-500 ml-0.5">*</span>;
+
   const dispatch = useDispatch();
   const { eventForm, eventFormStep, creating, validating, isCodeValid } = useSelector(
     (s) => s.events
@@ -18,7 +21,12 @@ export default function CreateEventForm({ onClose }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     // sve što ide u "code" polje upisujemo uppercase
-    const finalValue = name === "code" ? value.toUpperCase() : value;
+    let finalValue = value;
+    if (name === "code") finalValue = value.toUpperCase().trim();
+    if (name === "expectedGuests") {
+      finalValue = value.replace(/\D/g, ""); // digits only
+      if (finalValue.length > 5) finalValue = finalValue.slice(0, 5);
+    }
     dispatch(updateEventForm({ field: name, value: finalValue }));
   };
 
@@ -53,17 +61,17 @@ export default function CreateEventForm({ onClose }) {
     >
       {eventFormStep === 1 && (
         <>
-          {/* Couple Display Name */}
+          {/* Event Title */}
           <div className="flex flex-col text-left">
             <label className="text-sm font-semibold mb-1 text-gray-700">
-              Couple Display Name
+              Event Title <Req />
             </label>
             <input
               type="text"
               name="name"
               value={eventForm.name}
               onChange={handleChange}
-              placeholder="John & Jane Smith"
+              placeholder="Spring Gala 2025"
               className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-400"
               required
             />
@@ -74,7 +82,7 @@ export default function CreateEventForm({ onClose }) {
             {/* Date */}
             <div className="flex flex-col text-left">
               <label className="text-sm font-semibold mb-1 text-gray-700">
-                Wedding Date
+                Event Date  <Req />
               </label>
               <input
                 type="date"
@@ -90,7 +98,7 @@ export default function CreateEventForm({ onClose }) {
             {/* Venue */}
             <div className="flex flex-col text-left">
               <label className="text-sm font-semibold mb-1 text-gray-700">
-                Venue
+                Venue  <Req />
               </label>
               <input
                 type="text"
@@ -105,6 +113,24 @@ export default function CreateEventForm({ onClose }) {
             </div>
           </div>
 
+          {/* Expected Guests (optional) */}
+          <div className="flex flex-col text-left sm:col-span-2">
+            <label className="text-sm font-semibold mb-1 text-gray-700">
+              Expected Guests
+            </label>
+            <input
+              type="number"
+              name="expectedGuests"
+              value={eventForm.expectedGuests}
+              onChange={handleChange}
+              placeholder="e.g. 150"
+              inputMode="numeric"
+              min={1}
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-400"
+            />
+            <p className="text-xs text-gray-500 mt-1">Used for planning & overview stats.</p>
+          </div>
+
           {/* Short Description */}
           <div className="flex flex-col text-left">
             <label className="text-sm font-semibold mb-1 text-gray-700">
@@ -114,7 +140,7 @@ export default function CreateEventForm({ onClose }) {
               name="description"
               value={eventForm.description}
               onChange={handleChange}
-              placeholder="Elegant evening ceremony with 150 guests..."
+              placeholder="Evening event with 150 guests..."
               className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-400 resize-none"
               rows={3}
             />
@@ -149,7 +175,7 @@ export default function CreateEventForm({ onClose }) {
           {/* Code Field */}
           <div className="flex flex-col text-left">
             <label className="text-sm font-semibold mb-1 text-gray-700">
-              Unique Event Code
+              Unique Event Code  <Req />
             </label>
             <div className="flex gap-2">
               <input
@@ -205,7 +231,7 @@ export default function CreateEventForm({ onClose }) {
                            hover:from-orange-500 hover:to-orange-600 hover:shadow-lg
                            disabled:opacity-50"
               >
-                {creating === "loading" ? "Creating..." : "Create Wedding"}
+                {creating === "loading" ? "Creating..." : "Create Event"}
               </button>
             </div>
           </div>

@@ -5,9 +5,9 @@ export default function LandingPage() {
     <div style={{ textAlign: "center", padding: "60px 20px" }}>
       <h1 style={{ fontSize: "48px", color: "#f97316" }}>MemoReels</h1>
       <p style={{ maxWidth: "600px", margin: "20px auto", fontSize: "18px" }}>
-        MemoReels is your ultimate platform for wedding and event photo
-        management. Create private spaces for your events, share moments with
-        guests, and manage photos effortlessly.
+        MemoReels is your platform for event photo management.
+        Create private spaces for events, share moments with guests,
+        and manage photos effortlessly.
       </p>
       <div style={{ marginTop: "30px" }}>
         <Link

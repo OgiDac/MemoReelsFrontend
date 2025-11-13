@@ -15,7 +15,7 @@ export const login = createAsyncThunk("auth/login", async (form, thunkAPI) => {
 
 export const signup = createAsyncThunk("auth/signup", async (form, thunkAPI) => {
   try {
-    const { data } = await api.post("/public/api/users", form);
+    const { data } = await api.post("/public/api/users/sign-up", form);
     localStorage.setItem("accessToken", data.accessToken);
     localStorage.setItem("refreshToken", data.refreshToken);
     return data;

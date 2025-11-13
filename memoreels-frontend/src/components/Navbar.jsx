@@ -1,7 +1,7 @@
 import { useState, Fragment } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../store/slices/authSlice";
-import {  openCreateModal, closeCreateModal } from "../store/slices/eventsSlice";
+import { openCreateModal, closeCreateModal } from "../store/slices/eventsSlice";
 import { useNavigate } from "react-router-dom";
 import { IconPlus, IconHeart, IconDashboard } from "./Icons";
 import CreateEventForm from "./CreateEventForm";
@@ -12,12 +12,13 @@ import {
   Transition,
   TransitionChild,
 } from "@headlessui/react";
+import { Camera, CameraIcon } from "lucide-react";
 
 export default function Navbar() {
   const { isAuthenticated } = useSelector((s) => s.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-const { isCreateModalOpen } = useSelector((s) => s.events);
+  const { isCreateModalOpen } = useSelector((s) => s.events);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -32,17 +33,17 @@ const { isCreateModalOpen } = useSelector((s) => s.events);
           <div className="flex items-center gap-4">
             <div
               className="flex items-center gap-2 cursor-pointer"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/home")}
             >
               <div className="bg-orange-500 p-2 rounded-lg flex items-center justify-center">
-                <IconHeart className="text-white text-lg" />
+                <IconHeart  className="text-white text-lg" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-orange-500">
                   MemoReels
                 </span>
                 <span className="text-sm text-gray-500 -mt-1">
-                  Wedding Photo Management
+                  Event Photo Management
                 </span>
               </div>
             </div>
@@ -58,11 +59,11 @@ const { isCreateModalOpen } = useSelector((s) => s.events);
             {isAuthenticated ? (
               <>
                 <button
-                  onClick={() =>dispatch(openCreateModal())}
+                  onClick={() => dispatch(openCreateModal())}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-orange-400 to-orange-500 text-white shadow hover:from-orange-500 hover:to-orange-600 transition font-medium text-sm"
                 >
                   <IconPlus className="text-white text-xs" />
-                  Create New Wedding
+                  Create New Event
                 </button>
                 <button
                   onClick={handleLogout}
@@ -93,7 +94,7 @@ const { isCreateModalOpen } = useSelector((s) => s.events);
 
       {/* Modal */}
       <Transition appear show={isCreateModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => {}}>
+        <Dialog as="div" className="relative z-50" onClose={() => { }}>
           <TransitionChild
             as={Fragment}
             enter="ease-out duration-200"
@@ -120,12 +121,11 @@ const { isCreateModalOpen } = useSelector((s) => s.events);
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                   <DialogTitle className="flex items-center gap-2 text-orange-600 font-semibold text-lg">
-                    <span className="text-xl">❤️</span>
-                    Create New Wedding Event
+                    Create New Event
                   </DialogTitle>
                   <button
                     onClick={() => dispatch(closeCreateModal())}
-                    className="text-gray-400 hover:text-gray-600 transition"
+                    className="text-gray-400 hover:text-gray-600 transition cursor-pointer"
                   >
                     ✕
                   </button>

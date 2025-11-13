@@ -4,13 +4,15 @@ import {
   fetchEventsStats,
   fetchEventsList,
   openCreateModal,
+  closeQr,
 } from "../store/slices/eventsSlice";
 import { Camera, Calendar, Sparkles, Heart } from "lucide-react";
 import EventCard from "../components/EventCard";
+import EventQrModal from "../components/EventQrModal";
 
 export default function HomePage() {
   const dispatch = useDispatch();
-  const { stats, status, events, eventsStatus } = useSelector((s) => s.events);
+  const { stats, status, events, eventsStatus, isQrOpen, qrCodeValue } = useSelector((s) => s.events);
 
   useEffect(() => {
     dispatch(fetchEventsStats());
@@ -60,12 +62,11 @@ export default function HomePage() {
       {/* Header */}
       <div className="text-center mb-10">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-3 flex items-center justify-center gap-2">
-          <Heart className="h-8 w-8 text-orange-500" /> Capture Every Beautiful
+          <Camera art className="h-8 w-8 text-orange-500" /> Capture Every Beautiful
           Moment ✨
         </h1>
         <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-          Create magical wedding galleries, organize photos in albums, and share
-          memories instantly with couples and their guests.
+          Create beautiful event galleries, organize photos in albums, and share memories instantly with organizers and guests.
         </p>
       </div>
 
@@ -142,7 +143,7 @@ export default function HomePage() {
               onClick={() => dispatch(openCreateModal())}
               className="px-5 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold shadow hover:from-orange-500 hover:to-orange-600 hover:shadow-md transition"
             >
-              + Create your first wedding
+              + Create your first event
             </button>
           </div>
         ) : (
@@ -153,6 +154,12 @@ export default function HomePage() {
           </div>
         )}
       </div>
+      <EventQrModal
+        open={isQrOpen}
+        onClose={() => dispatch(closeQr())}
+        id={qrCodeValue?.id}
+        code={qrCodeValue?.code}
+      />
     </div>
   );
 }

@@ -6,7 +6,24 @@
     font-family: "DM Sans", sans-serif;
   }
 
-  h1, h2, h3, .font-heading {
+  h1,
+  h2,
+  h3,
+  .font-heading {
     font-family: "Cormorant Garamond", serif;
+  }
+
+  :where(input, textarea, select, button):focus,
+  :where(input, textarea, select, button):focus-visible {
+    outline: none;
+  }
+
+  /* optional: subtle, consistent focus ring (keyboard + mouse) */
+  :where(input, textarea, select, button):focus-visible {
+    box-shadow: inset 0 0 0 2px rgba(251, 146, 60, 0.55);
+    /* ~orange-400 */
+    border-color: rgba(251, 146, 60, 0.6);
+    border-radius: 0.5rem;
+    /* match your rounded-md */
   }
 }

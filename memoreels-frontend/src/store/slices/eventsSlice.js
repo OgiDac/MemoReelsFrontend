@@ -34,6 +34,7 @@ export const createEvent = createAsyncThunk(
                 description: eventForm.description,
                 date: eventForm.date,
                 code: eventForm.code,
+                expectedGuests: eventForm.expectedGuests === "" ? null : Number(eventForm.expectedGuests),
             };
 
             const res = await api.post("/private/api/events", payload);
@@ -61,7 +62,7 @@ export const fetchEventsList = createAsyncThunk(
     "events/fetchEventsList",
     async (_, thunkAPI) => {
         try {
-            const res = await api.get("/private/api/events");
+            const res = await api.get("/private/api/events/my-events");
             return res.data;
         } catch (err) {
             return thunkAPI.rejectWithValue(err.response?.data || "Failed to fetch events");
@@ -84,11 +85,14 @@ const eventsSlice = createSlice({
             location: "",
             description: "",
             code: "",
+            expectedGuests: "",
         },
         isCodeValid: false,
         events: [],            // ⬅ lista eventova
         eventsStatus: "idle",
         isCreateModalOpen: false,
+        isQrOpen: false,
+        qrCodeValue: null,
     },
     reducers: {
         updateEventForm: (state, action) => {
@@ -118,6 +122,14 @@ const eventsSlice = createSlice({
         },
         closeCreateModal: (state) => {
             state.isCreateModalOpen = false;
+        },
+        openQr: (state, action) => {
+            state.isQrOpen = true;
+            state.qrCodeValue = action.payload;
+        },
+        closeQr: (state) => {
+            state.isQrOpen = false;
+            state.qrCodeValue = null;
         },
     },
     extraReducers: (builder) => {
@@ -177,6 +189,6 @@ const eventsSlice = createSlice({
     },
 });
 
-export const { updateEventForm, resetEventForm, setEventFormStep, openCreateModal, closeCreateModal } =
+export const { updateEventForm, resetEventForm, setEventFormStep, openCreateModal, closeCreateModal, openQr, closeQr } =
     eventsSlice.actions;
 export default eventsSlice.reducer;

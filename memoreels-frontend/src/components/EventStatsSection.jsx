@@ -39,7 +39,7 @@ export default function HomePage() {
         Capture Every Beautiful Moment ✨
       </h1>
       <p className="text-gray-600 max-w-2xl mb-10 text-lg">
-        Create magical wedding galleries, organize photos in albums, and share memories instantly with couples and their guests.
+        Create beautiful event galleries, organize photos in albums, and share memories instantly with organizers and guests.
       </p>
 
       {/* Stats */}

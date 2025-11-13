@@ -5,7 +5,7 @@ export default function App() {
   return (
     <div>
       <Navbar />
-      <div className="w-full px-15 pt-10">
+      <div className="w-full px-5 py-10">
         <Outlet />
       </div>
     </div>
