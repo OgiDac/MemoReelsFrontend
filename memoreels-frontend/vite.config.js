@@ -15,6 +15,6 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    origin: 'https://f14a1777ab60.ngrok-free.app',
+    origin: 'https://a6c1e809dca7.ngrok-free.app',
   }
 })

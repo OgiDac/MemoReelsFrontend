@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function ImageViewer({ items, index, onClose, onPrev, onNext }) {
   const escClose = (e) => e.key === "Escape" && onClose();
@@ -6,6 +7,7 @@ export default function ImageViewer({ items, index, onClose, onPrev, onNext }) {
     if (e.key === "ArrowLeft") onPrev();
     if (e.key === "ArrowRight") onNext();
   };
+
   useEffect(() => {
     document.addEventListener("keydown", escClose);
     document.addEventListener("keydown", arrowNav);
@@ -35,39 +37,24 @@ export default function ImageViewer({ items, index, onClose, onPrev, onNext }) {
             {p.width && p.height ? `${p.width}×${p.height}` : ""}{" "}
             {p.sizeMB ? `• ${p.sizeMB.toFixed(2)} MB` : ""}
           </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={p.originalUrl}
-              download
-              className="px-3 py-1.5 text-sm rounded-lg bg-white/90 hover:bg-white text-gray-800"
-            >
-              Download
-            </a>
-            <button
-              className="px-3 py-1.5 text-sm rounded-lg bg-white/90 hover:bg-white text-gray-800"
-              onClick={onClose}
-            >
-              Close
-            </button>
-          </div>
+          <button
+            className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white/90 hover:bg-white text-gray-800 shadow transition"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {/* image area */}
         <div className="flex-1 flex items-center justify-center px-2 pb-6 select-none">
-          {isHeic(p.originalUrl) ? (
+          {isHeic(p.webUrl) ? (
             <div className="text-center text-gray-200">
               <div className="text-base mb-2">HEIC preview not supported.</div>
-              <a
-                href={p.originalUrl}
-                download
-                className="underline text-white"
-              >
-                Download original
-              </a>
             </div>
           ) : (
             <img
-              src={p.originalUrl}
+              src={p.webUrl}
               alt=""
               className="max-h-[90vh] max-w-[95vw] object-contain rounded-lg shadow-2xl"
               draggable={false}
@@ -79,18 +66,18 @@ export default function ImageViewer({ items, index, onClose, onPrev, onNext }) {
         {items.length > 1 && (
           <>
             <button
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center"
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center transition"
               onClick={onPrev}
               aria-label="Previous"
             >
-              ‹
+              <ChevronLeft className="h-5 w-5" />
             </button>
             <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center"
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center transition"
               onClick={onNext}
               aria-label="Next"
             >
-              ›
+              <ChevronRight className="h-5 w-5" />
             </button>
           </>
         )}
