@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchEventById, fetchEventOverview } from "../store/slices/eventSlice";
-import { Calendar, MapPin, Heart, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, Heart, ArrowLeft, Trash2 } from "lucide-react";
 import Overview from "../components/Overview";
 import EventQrModal from "../components/EventQrModal";
-import { closeQr } from "../store/slices/eventsSlice";
+import { closeQr, deleteEvent } from "../store/slices/eventsSlice";
 import AlbumsTab from "../components/AlbumsTab";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function RequestedPhotosTab() {
     return (
@@ -24,6 +25,20 @@ export default function EventPage() {
     const { eventId } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate();
+
+    const [deleteOpen, setDeleteOpen] = useState(false);
+
+    const handleConfirmDelete = async () => {
+        if (!eventId) return;
+        try {
+            await dispatch(deleteEvent(eventId)).unwrap();
+            navigate("/home");
+        } catch (e) {
+            console.error("Failed to delete event", e);
+        } finally {
+            setDeleteOpen(false);
+        }
+    };
 
     const { event, status, overview, overviewStatus } = useSelector((s) => s.event);
     const { isQrOpen, qrCodeValue } = useSelector((s) => s.events);
@@ -57,7 +72,8 @@ export default function EventPage() {
     return (
         <><div className="w-full max-w-5xl mx-auto px-4 mt-8">
             {/* Top Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-4 border-b border-gray-200 pb-4">
+                {/* Leva strana */}
                 <div className="flex flex-col gap-2">
                     <button
                         onClick={() => navigate("/home")}
@@ -87,7 +103,20 @@ export default function EventPage() {
                         <span>{event.location}</span>
                     </div>
                 </div>
+
+                {/* Desna strana – dugme, spušteno dole na većim ekranima */}
+                <div className="flex items-center sm:self-end">
+                    <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-600 bg-white hover:bg-red-50 shadow-sm transition"
+                        onClick={() => setDeleteOpen(true)}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Delete event</span>
+                    </button>
+                </div>
             </div>
+
 
             {/* Tabs */}
             <div className="flex mt-8 mb-6">
@@ -130,11 +159,24 @@ export default function EventPage() {
                 {activeTab === "albums" && <AlbumsTab eventId={eventId} />}
                 {activeTab === "requested" && <RequestedPhotosTab />}
             </div>
-        </div><EventQrModal
+        </div>
+            <EventQrModal
                 open={isQrOpen}
                 onClose={() => dispatch(closeQr())}
                 id={qrCodeValue?.id}
-                code={qrCodeValue?.code} /></>
+                code={qrCodeValue?.code}
+            />
+
+            <ConfirmDialog
+                open={deleteOpen}
+                title="Delete event"
+                message="This will permanently delete this event, all its albums, and all photos. This action cannot be undone."
+                confirmLabel="Delete event"
+                cancelLabel="Cancel"
+                variant="danger"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setDeleteOpen(false)}
+            /></>
 
     );
 }

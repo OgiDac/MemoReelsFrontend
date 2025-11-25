@@ -40,6 +40,18 @@ export const updateAlbum = createAsyncThunk(
     }
 );
 
+export const deleteAlbum = createAsyncThunk(
+    "albums/delete",
+    async (albumId, thunkAPI) => {
+        try {
+            await api.delete(`/private/api/albums/${albumId}`);
+            return Number(albumId);
+        } catch (err) {
+            return thunkAPI.rejectWithValue(err.response?.data || "Failed to delete album");
+        }
+    }
+);
+
 const albumsSlice = createSlice({
     name: "albums",
     initialState: {
@@ -124,6 +136,18 @@ const albumsSlice = createSlice({
             .addCase(updateAlbum.rejected, (s, a) => {
                 s.error = a.payload;
                 s.updatingId = null; // keep editingAlbum so user can retry or cancel
+            })
+            // delete
+            .addCase(deleteAlbum.pending, (s) => {
+                s.error = null;
+            })
+            .addCase(deleteAlbum.fulfilled, (s, a) => {
+                const id = Number(a.payload);
+                s.albums = (s.albums || []).filter(alb => alb.id !== id);
+                if (s.editingAlbum?.id === id) s.editingAlbum = null;
+            })
+            .addCase(deleteAlbum.rejected, (s, a) => {
+                s.error = a.payload || "Failed to delete album";
             });
     },
 });

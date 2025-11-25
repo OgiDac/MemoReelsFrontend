@@ -227,6 +227,8 @@ export const deletePhoto = createAsyncThunk(
   }
 );
 
+
+
 /* ============================== Slice ============================== */
 
 const albumDetailSlice = createSlice({

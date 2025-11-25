@@ -70,6 +70,19 @@ export const fetchEventsList = createAsyncThunk(
     }
 );
 
+export const deleteEvent = createAsyncThunk(
+    "events/deleteEvent",
+    async (eventId, thunkAPI) => {
+        try {
+            await api.delete(`/private/api/events/${eventId}`); // npr. /private/api/events/5
+            return Number(eventId);
+        } catch (err) {
+            return thunkAPI.rejectWithValue(err.response?.data || "Failed to delete event");
+        }
+    }
+);
+
+
 const eventsSlice = createSlice({
     name: "events",
     initialState: {
@@ -185,7 +198,17 @@ const eventsSlice = createSlice({
             .addCase(fetchEventsList.rejected, (state, action) => {
                 state.eventsStatus = "failed";
                 state.error = action.payload;
-            });;
+            })
+            // delete event
+            .addCase(deleteEvent.fulfilled, (state, action) => {
+                const id = Number(action.payload);
+                state.events = (state.events || []).filter(ev => ev.id !== id);
+                notifySuccess("Event deleted ✅");
+            })
+            .addCase(deleteEvent.rejected, (state, action) => {
+                state.error = action.payload;
+                notifyError("Failed to delete event ❌");
+            });
     },
 });
 

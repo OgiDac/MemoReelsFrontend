@@ -8,6 +8,7 @@ import {
   startRenameAlbum,
   updateEditingAlbumField,
   cancelEditingAlbum,
+  deleteAlbum,
 } from "../store/slices/albumsSlice";
 import { updateAlbum } from "../store/slices/albumsSlice";
 import CreateAlbumModal from "./CreateAlbumModal";
@@ -23,6 +24,7 @@ import {
   Plus,
 } from "lucide-react";
 import { formatLocalDateTime, timeAgoUTCToLocal } from "../utils/time";
+import ConfirmDialog from "./ConfirmDialog";
 
 const STATUS_STYLES = {
   published: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
@@ -46,6 +48,7 @@ function AlbumCard({
   onCancelRename,
   onConfirmRename,
   onTogglePublish,
+  onDelete,
 }) {
   const chip = album.status || "draft";
   const chipClass = STATUS_STYLES[chip] || STATUS_STYLES.draft;
@@ -114,9 +117,8 @@ function AlbumCard({
     >
       {/* Cover */}
       <div
-        className={`relative aspect-[16/9] bg-gradient-to-tr from-amber-50 via-orange-50 to-white ${
-          isRenaming ? "opacity-70" : ""
-        }`}
+        className={`relative aspect-[16/9] bg-gradient-to-tr from-amber-50 via-orange-50 to-white ${isRenaming ? "opacity-70" : ""
+          }`}
       >
         {coverUrl ? (
           <img
@@ -162,9 +164,8 @@ function AlbumCard({
           <button
             type="button"
             aria-label="Album actions"
-            className={`p-1.5 rounded-full border border-white/60 bg-white/80 hover:bg-white shadow-sm transition ${
-              isRenaming || isUpdating ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100"
-            }`}
+            className={`p-1.5 rounded-full border border-white/60 bg-white/80 hover:bg-white shadow-sm transition ${isRenaming || isUpdating ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100"
+              }`}
             onClick={() => setMenuOpen((v) => !v)}
           >
             <MoreHorizontal className="h-4 w-4 text-gray-700" />
@@ -199,6 +200,11 @@ function AlbumCard({
               <button
                 type="button"
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  onDelete?.(album);
+                }}
               >
                 <Trash2 className="h-4 w-4" />
                 Delete
@@ -311,6 +317,9 @@ export default function AlbumsTab({ eventId }) {
     (s) => s.albums
   );
 
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
   useEffect(() => {
     if (!eventId) return;
     dispatch(fetchAlbums(eventId));
@@ -354,6 +363,17 @@ export default function AlbumsTab({ eventId }) {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget?.id) return;
+    try {
+      await dispatch(deleteAlbum(deleteTarget.id)).unwrap();
+    } catch (e) {
+      console.error("Failed to delete album", e);
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
   return (
     <div className="w-full space-y-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -387,11 +407,24 @@ export default function AlbumsTab({ eventId }) {
                 })
               }
               onTogglePublish={() => onTogglePublish(a)}
+
+              onDelete={() => setDeleteTarget(a)}
             />
           ))}
         </div>
       )}
       <CreateAlbumModal eventId={eventId} open={isCreateOpen} />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete album"
+        message="This will permanently delete this album and all its photos. This action cannot be undone."
+        confirmLabel="Delete album"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
