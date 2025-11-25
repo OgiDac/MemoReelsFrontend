@@ -1,18 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios";
 
-let pollTimer = null;
-let pollDelayMs = 2000;
-const pollBackoffSeq = [2000, 3000, 5000, 8000];
-let backoffIdx = 0;
-
-function scheduleNextTick(dispatch, getState, eventId, albumId) {
-  if (pollTimer) clearTimeout(pollTimer);
-  pollTimer = setTimeout(() => {
-    dispatch(pollProcessingOnce({ eventId, albumId }));
-  }, pollDelayMs);
-}
-
 /* ========================= In-module file cache ========================= */
 const fileCache = new Map();
 const toMeta = (file) => ({
@@ -140,7 +128,7 @@ export const batchFinalize = createAsyncThunk(
   }
 );
 
-// init → upload → finalize; return uploadedIds so we can seed polling
+// init → upload → finalize; return uploadedIds so we can označiti kao processing
 export const uploadPhotosBatch = createAsyncThunk(
   "albumDetail/uploadPhotosBatch",
   async ({ eventId, albumId, files, concurrency = 4 }, thunkAPI) => {
@@ -207,7 +195,7 @@ export const uploadPhotosBatch = createAsyncThunk(
         uploaded: uploadedIds.length,
         failed: finalizeItems.filter((i) => i.status === "failed").length,
         updated: finalizeRes?.updated ?? 0,
-        uploadedIds, // 👈 seed polling
+        uploadedIds,
       };
     } catch (err) {
       return thunkAPI.rejectWithValue(typeof err === "string" ? err : err?.message || "Batch upload failed");
@@ -235,84 +223,6 @@ export const deletePhoto = createAsyncThunk(
       return photoId;
     } catch (err) {
       return thunkAPI.rejectWithValue(err.response?.data || "Failed to delete photo");
-    }
-  }
-);
-
-export const checkPhotoStatuses = createAsyncThunk(
-  "albumDetail/checkPhotoStatuses",
-  async ({ ids }, thunkAPI) => {
-    try {
-      if (!ids?.length) return { statuses: [] };
-      const res = await api.get(`/public/api/photos/status`, { params: { ids: ids.join(",") } });
-      const data = res.data;
-      const list = Array.isArray(data) ? data : Array.isArray(data?.statuses) ? data.statuses : [];
-      const statuses = list.map(s => ({
-        id: Number(s.id),
-        status: String(s.status || "").toLowerCase(),
-      }));
-      return { statuses };
-    } catch (err) {
-      return thunkAPI.rejectWithValue(err.response?.data || "Status check failed");
-    }
-  }
-);
-
-
-export const pollProcessingOnce = createAsyncThunk(
-  "albumDetail/pollProcessingOnce",
-  async ({ eventId, albumId }, thunkAPI) => {
-    const { dispatch, getState } = thunkAPI;
-    const st = getState().albumDetail;
-    const pendingIds = Array.from(st.processingIds || []).map(Number);
-    if (!pendingIds.length) { dispatch(stopStatusPolling()); return { changed: false }; }
-
-    const resp = await dispatch(checkPhotoStatuses({ ids: pendingIds })).unwrap();
-    const terminal = new Set(["processed", "failed"]);
-    const nowTerminal = (resp.statuses || [])
-      .filter(s => terminal.has(s.status))
-      .map(s => Number(s.id));
-
-    if (nowTerminal.length) {
-      dispatch(setPhotoStatuses(nowTerminal.map(id => ({ id, status: "processed" })))); // 👈 optimistic UI
-      dispatch(markProcessed(nowTerminal));
-      backoffIdx = 0; pollDelayMs = pollBackoffSeq[0];
-      await dispatch(fetchAlbumPhotos({ eventId, albumId }));
-    } else {
-      backoffIdx = Math.min(backoffIdx + 1, pollBackoffSeq.length - 1);
-      pollDelayMs = pollBackoffSeq[backoffIdx];
-    }
-
-    // stop if empty after refresh
-    const stillPending = (getState().albumDetail.processingIds || []).length > 0;
-    if (stillPending) scheduleNextTick(dispatch, getState, eventId, albumId);
-    else dispatch(stopStatusPolling());
-
-    return { changed: nowTerminal.length > 0 };
-  }
-);
-
-
-export const startStatusPolling = createAsyncThunk(
-  "albumDetail/startStatusPolling",
-  async ({ eventId, albumId }, thunkAPI) => {
-    const { dispatch, getState } = thunkAPI;
-    const st = getState().albumDetail;
-    if (st.processingIds.length === 0) return;
-    if (!pollTimer) {
-      backoffIdx = 0;
-      pollDelayMs = pollBackoffSeq[0];
-      scheduleNextTick(dispatch, getState, eventId, albumId);
-    }
-  }
-);
-
-export const stopStatusPolling = createAsyncThunk(
-  "albumDetail/stopStatusPolling",
-  async () => {
-    if (pollTimer) {
-      clearTimeout(pollTimer);
-      pollTimer = null;
     }
   }
 );
@@ -393,7 +303,6 @@ const albumDetailSlice = createSlice({
         .filter(p => {
           const st = p.status;
           if (st) return st !== "processed" && st !== "failed";
-          // fallback: if no status, treat items without variants as pending
           return !(p.thumbUrl && p.webUrl);
         })
         .map(p => p.id);
@@ -417,6 +326,24 @@ const albumDetailSlice = createSlice({
         const id = Number(p.id);
         if (byId.has(id)) return { ...p, status: byId.get(id) };
         return p;
+      });
+    },
+    bumpPhotoCache: (state, action) => {
+      const targetId = Number(action.payload);
+      const addCb = (url) => {
+        if (!url) return url;
+        const sep = url.includes("?") ? "&" : "?";
+        return `${url}${sep}cb=${Date.now()}`;
+      };
+      state.photos = (state.photos || []).map(p => {
+        if (Number(p.id) !== targetId) return p;
+        return {
+          ...p,
+          thumbUrl: addCb(p.thumbUrl),
+          webUrl: addCb(p.webUrl),
+          // originalUrl po želji, može i da ostane
+          originalUrl: addCb(p.originalUrl),
+        };
       });
     },
   },
@@ -447,7 +374,6 @@ const albumDetailSlice = createSlice({
         const norm = (p) => {
           let status = String(p.status || "").toLowerCase();
           if (status === "uploaded") status = "processing";
-          // accept both thumbUrl/webUrl and thumbURL/webURL
           const thumbUrl = p.thumbUrl ?? p.thumbURL ?? null;
           const webUrl = p.webUrl ?? p.webURL ?? null;
           const origUrl = p.originalUrl ?? p.originalURL ?? p.original_url ?? null;
@@ -468,7 +394,6 @@ const albumDetailSlice = createSlice({
         state.photosError = null;
         if (state.album) state.album.photoCount = list.length;
 
-        // derive processing set (now on normalized data)
         const ids = list
           .filter(p => {
             if (p.status) return p.status !== "processed" && p.status !== "failed";
@@ -477,13 +402,12 @@ const albumDetailSlice = createSlice({
           .map(p => p.id);
         state.processingIds = Array.from(new Set(ids.map(Number)));
       })
-
       .addCase(fetchAlbumPhotos.rejected, (state, action) => {
         state.photosStatus = "failed";
         state.photosError = action.payload;
       })
 
-      // batch init (optional UI)
+      // batch init
       .addCase(batchInit.pending, (state) => {
         state.uploading = "loading";
         state.uploadError = null;
@@ -495,7 +419,7 @@ const albumDetailSlice = createSlice({
         state.uploadError = action.payload || "Init failed";
       })
 
-      // all-in-one
+      // all-in-one upload
       .addCase(uploadPhotosBatch.pending, (state) => {
         state.uploading = "loading";
         state.isUploadPanelOpen = true;
@@ -540,11 +464,21 @@ const albumDetailSlice = createSlice({
 });
 
 export const {
-  setSelectedAlbum, clearSelectedAlbum, clearAlbumPhotos,
-  uploadQueueStarted, uploadItemProgress, uploadItemDone, uploadQueueFinished,
-  toggleUploadPanel, setUploadPanelOpen, setUploadDismissed,
-  recomputeProcessingFromPhotos, markProcessed, addProcessingIds,
+  setSelectedAlbum,
+  clearSelectedAlbum,
+  clearAlbumPhotos,
+  uploadQueueStarted,
+  uploadItemProgress,
+  uploadItemDone,
+  uploadQueueFinished,
+  toggleUploadPanel,
+  setUploadPanelOpen,
+  setUploadDismissed,
+  recomputeProcessingFromPhotos,
+  markProcessed,
+  addProcessingIds,
   setPhotoStatuses,
+  bumpPhotoCache,
 } = albumDetailSlice.actions;
 
 export default albumDetailSlice.reducer;

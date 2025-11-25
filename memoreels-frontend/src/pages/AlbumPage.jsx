@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
+import api from "../api/axios";
 import {
     fetchAlbum,
     fetchAlbumPhotos,
     uploadPhotosBatch,
     deletePhoto,
     setAlbumCover,
-    startStatusPolling,
-    stopStatusPolling,
+    setPhotoStatuses,
+    markProcessed,
+    bumpPhotoCache,
 } from "../store/slices/albumDetailSlice";
 import {
     ArrowLeft,
@@ -45,8 +47,12 @@ function PhotoCard({ photo, onOpen, onDelete, onSetAsCover, isCover }) {
     const createdAt = photo?.createdAt;
     const sizeLabel = typeof photo?.sizeMB === "number" ? `${photo.sizeMB.toFixed(2)} MB` : null;
 
-    const imgSrc = photo?.thumbUrl ?? photo?.thumbURL ?? photo?.webUrl ?? photo?.webURL ?? null;
-    const isProcessed = ((photo?.status || "").toLowerCase() === "processed") || !!imgSrc;
+    const status = (photo?.status || "").toLowerCase();
+    const isProcessed = status === "processed";
+
+    const imgSrc = isProcessed
+        ? (photo?.thumbUrl ?? photo?.thumbURL ?? photo?.webUrl ?? photo?.webURL ?? null)
+        : null;
 
 
     return (
@@ -62,7 +68,9 @@ function PhotoCard({ photo, onOpen, onDelete, onSetAsCover, isCover }) {
                         <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
                             <ImageIcon className="h-5 w-5 text-orange-600" />
                         </div>
-                        {!imgSrc && !isProcessed && (<div className="mt-2 text-xs ...">Processing…</div>)}
+                        {status !== "processed" && (
+                            <div className="mt-2 text-xs ...">Processing…</div>
+                        )}
                     </div>
                 )}
 
@@ -166,25 +174,71 @@ export default function AlbumPage() {
 
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
+    const wsRef = useRef(null);
 
     const [viewerIndex, setViewerIndex] = useState(null);
     const openViewer = (idx) => setViewerIndex(idx);
 
+    // Initial fetch
     useEffect(() => {
         if (!albumId) return;
         dispatch(fetchAlbum(albumId));
         if (eventId) {
-            dispatch(fetchAlbumPhotos({ eventId, albumId }))
-                .unwrap()
-                .then(() => {
-                    dispatch(startStatusPolling({ eventId, albumId }));
-                })
-                .catch(() => { });
+            dispatch(fetchAlbumPhotos({ eventId, albumId })).catch(() => { });
         }
-        return () => {
-            dispatch(stopStatusPolling());
-        };
     }, [albumId, eventId, dispatch]);
+
+    // WebSocket za photo.processed evente
+    useEffect(() => {
+        if (!eventId || !albumId) return;
+
+        const base = (api.defaults.baseURL || window.location.origin).replace(/\/$/, "");
+        const wsUrl =
+            base.replace(/^http/, "ws") +
+            `/ws/photos?eventId=${eventId}&albumId=${albumId}`;
+
+        const socket = new WebSocket(wsUrl);
+        wsRef.current = socket;
+
+        socket.onopen = () => {
+            console.log("photo WS opened", { eventId, albumId });
+        };
+
+        socket.onmessage = (ev) => {
+            try {
+                const msg = JSON.parse(ev.data);
+                if (
+                    msg?.type === "photo.processed" &&
+                    String(msg.eventId) === String(eventId) &&
+                    String(msg.albumId) === String(albumId)
+                ) {
+                    const photoId = Number(msg.photoId);
+                    if (Number.isFinite(photoId)) {
+                        dispatch(setPhotoStatuses([{ id: photoId, status: "processed" }]));
+                        dispatch(markProcessed([photoId]));
+                    }
+                }
+            } catch (err) {
+                console.error("WS message parse error", err);
+            }
+        };
+
+
+        socket.onerror = (err) => {
+            console.error("photo WS error", err);
+        };
+
+        socket.onclose = () => {
+            console.log("photo WS closed");
+        };
+
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
+        };
+    }, [eventId, albumId, dispatch]);
 
     const title = album?.name ?? `Album #${albumId}`;
     const subtitle = album?.description || "";
@@ -197,7 +251,7 @@ export default function AlbumPage() {
 
     const afterSuccessfulUpload = async () => {
         await dispatch(fetchAlbumPhotos({ eventId, albumId }));
-        dispatch(startStatusPolling({ eventId, albumId }));
+        // nema više pollinga
     };
 
     const onDrop = async (e) => {
@@ -331,7 +385,7 @@ export default function AlbumPage() {
                                 photo={p}
                                 isCover={coverId === p.id}
                                 onOpen={() => setViewerIndex(i)}
-                                onDelete={() => setDeleteTarget(p)}
+                                onDelete={() => requestDeletePhoto(p)}
                                 onSetAsCover={() => handleSetCover(p.id)}
                             />
                         ))}
