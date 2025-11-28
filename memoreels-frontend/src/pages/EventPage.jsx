@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchEventById, fetchEventOverview } from "../store/slices/eventSlice";
-import { Calendar, MapPin, Heart, ArrowLeft, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Heart, ArrowLeft, Trash2, QrCode } from "lucide-react";
 import Overview from "../components/Overview";
 import EventQrModal from "../components/EventQrModal";
 import { closeQr, deleteEvent } from "../store/slices/eventsSlice";
@@ -104,8 +104,17 @@ export default function EventPage() {
                     </div>
                 </div>
 
-                {/* Desna strana – dugme, spušteno dole na većim ekranima */}
-                <div className="flex items-center sm:self-end">
+                {/* Desna strana – dugmad, spuštena dole na većim ekranima */}
+                <div className="flex items-center sm:self-end gap-2">
+                    <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md hover:from-orange-600 hover:to-amber-500 transition"
+                        onClick={() => navigate(`/events/${eventId}/sticker`)}
+                    >
+                        <QrCode className="h-4 w-4" />
+                        <span>Sticker layout</span>
+                    </button>
+
                     <button
                         type="button"
                         className="inline-flex items-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-600 bg-white hover:bg-red-50 shadow-sm transition"
@@ -115,6 +124,7 @@ export default function EventPage() {
                         <span>Delete event</span>
                     </button>
                 </div>
+
             </div>
 
 

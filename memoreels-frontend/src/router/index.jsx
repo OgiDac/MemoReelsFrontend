@@ -7,6 +7,7 @@ import HomePage from "../pages/HomePage";
 import EventPage from "../pages/EventPage";
 import ProtectedRoute from "./ProtectedRoute";
 import AlbumPage from "../pages/AlbumPage";
+import EventStickerPage from "../pages/EventStickerPage";
 
 const router = createBrowserRouter([
   {
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
           { path: "home", element: <HomePage /> },
           { path: "events/:eventId", element: <EventPage /> },
           { path: "/events/:eventId/albums/:albumId", element: <AlbumPage /> },
+          {path: "/events/:eventId/sticker", element: <EventStickerPage />}
         ],
       },
     ],

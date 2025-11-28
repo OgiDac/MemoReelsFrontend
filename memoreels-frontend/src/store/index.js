@@ -4,6 +4,7 @@ import eventsReducer from "./slices/eventsSlice";
 import eventReducer from "./slices/eventSlice"
 import albumsReducer from "./slices/albumsSlice"
 import albumDetailReducer from "./slices/albumDetailSlice"
+import sticketTemplateReducer from "./slices/stickerTemplateSlice"
 
 const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ const store = configureStore({
     event: eventReducer,
     albums: albumsReducer,
     albumDetail: albumDetailReducer,
+    stickerTemplate: sticketTemplateReducer,
   },
 });
 
